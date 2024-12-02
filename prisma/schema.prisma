@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "better-sqlite3"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  name            String
+  password        String
+  role            String           // 'vereador' | 'diretor'
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  profile         VereadorProfile?
+  votes           Vote[]
+  attendance      Attendance[]
+  createdSessions Session[]        @relation("SessionCreator")
+}
+
+model VereadorProfile {
+  id              String   @id @default(uuid())
+  partido         String
+  cargo           String
+  historiaPolitica String
+  foto            String
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Session {
+  id            String       @id @default(uuid())
+  title         String
+  description   String
+  date          DateTime
+  status        String      // 'agendada' | 'em_andamento' | 'encerrada'
+  creatorId     String
+  creator       User        @relation("SessionCreator", fields: [creatorId], references: [id])
+  documents     Document[]
+  votingTopics  VotingTopic[]
+  attendance    Attendance[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  title       String
+  url         String
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+model VotingTopic {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  status      String    // 'open' | 'closed'
+  sessionId   String
+  session     Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  votes       Vote[]
+  attachments VotingAttachment[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Vote {
+  id            String      @id @default(uuid())
+  vote          String      // 'favor' | 'contra' | 'abstencao'
+  confirmed     Boolean     @default(false)
+  vereadorId    String
+  vereador      User        @relation(fields: [vereadorId], references: [id])
+  topicId       String
+  topic         VotingTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  timestamp     DateTime    @default(now())
+}
+
+model Attendance {
+  id            String    @id @default(uuid())
+  status        String    // 'presente' | 'ausente'
+  justification String?
+  vereadorId    String
+  vereador      User      @relation(fields: [vereadorId], references: [id])
+  sessionId     String
+  session       Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  attachments   AttendanceAttachment[]
+  timestamp     DateTime  @default(now())
+}
+
+model VotingAttachment {
+  id          String      @id @default(uuid())
+  name        String
+  type        String
+  url         String
+  size        Int
+  topicId     String
+  topic       VotingTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  uploadedAt  DateTime    @default(now())
+}
+
+model AttendanceAttachment {
+  id            String     @id @default(uuid())
+  name          String
+  type          String
+  url           String
+  size          Int
+  attendanceId  String
+  attendance    Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  uploadedAt    DateTime   @default(now())
+}
